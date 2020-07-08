@@ -34,29 +34,32 @@ fn parse_header(input : &[u8]) -> Result<(&[u8], GLTFHeader), Err<(&[u8], ErrorK
     Ok((input, GLTFHeader{magic: magic.to_vec(), version, length}))
 }
 
-fn parse_chank(input: &[u8]) -> Result<GLTFChank, Err<(&[u8], ErrorKind)>> {
+fn parse_chank(input: &[u8]) -> Result<(&[u8], GLTFChank), Err<(&[u8], ErrorKind)>> {
     let (input, chank_length) = le_u32(input)?;
     let (input, chank_type) = take(4u8)(input)?;
-    let (_input, chank_data) = take(chank_length)(input)?;
+    let (input, chank_data) = take(chank_length)(input)?;
 
-    Ok(GLTFChank{chank_length, chank_type: chank_type.to_vec(), chank_data: chank_data.to_vec()})
+    Ok((input, GLTFChank{chank_length, chank_type: chank_type.to_vec(), chank_data: chank_data.to_vec()}))
 }
 
 fn parse_gltf(input: &[u8]) -> Result<GLTFContainer, Err<(&[u8], ErrorKind)>> {
     let mut gltf: GLTFContainer = Default::default();
 
     let (input, header) = parse_header(&input)?;
-    let chank = parse_chank(&input)?;
-
     gltf.header = header;
-    gltf.chank.push(chank);
+
+    let mut chank_input = input;
+    while chank_input.len() > 0 {
+        let (input, chank) = parse_chank(&chank_input)?;
+        gltf.chank.push(chank);
+        chank_input = input;
+    }
     
     Ok(gltf)
 }
 
 impl GLTFHeader {
     fn print(&self) {
-        println!("header:");
         println!("  magic: {}", String::from_utf8(self.magic.to_vec()).unwrap());
         println!("  version: {}", self.version);
         println!("  length: {}", self.length);
@@ -65,17 +68,28 @@ impl GLTFHeader {
 
 impl GLTFChank {
     fn print(&self) {
-        println!("chank{}:", 0);
         println!("  length: {}", self.chank_length);
-        println!("  type: {}", String::from_utf8(self.chank_type.to_vec()).unwrap());
-        println!("  data: {}", String::from_utf8(self.chank_data.to_vec()).unwrap());
+        let chank_type = String::from_utf8(self.chank_type.to_vec()).unwrap();
+        println!("  type: {}", chank_type);
+        match chank_type.trim() {
+            "JSON" => println!("  data: {}", String::from_utf8(self.chank_data.to_vec()).unwrap()),
+            "BIN\x00" => println!("  data: <binary data>"),
+            _ => println!("  data: <unknown type>"),
+        } 
     }
 }
 
 impl GLTFContainer {
     fn print(&self) {
+        println!("header:");
         self.header.print();
-        self.chank[0].print();
+        let mut count = 0;
+        println!("len {}", self.chank.len());
+        for chank in &self.chank {
+            println!("chank{}:", count);
+            chank.print();
+            count += 1;
+        }
     }
 }
 
