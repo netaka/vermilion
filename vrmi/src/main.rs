@@ -72,7 +72,7 @@ impl GLTFChank {
         let chank_type = String::from_utf8(self.chank_type.to_vec()).unwrap();
         println!("  type: {}", chank_type);
         match chank_type.trim() {
-            "JSON" => println!("  data: {}", String::from_utf8(self.chank_data.to_vec()).unwrap()),
+            "JSON" => print_json(String::from_utf8(self.chank_data.to_vec()).unwrap()),
             "BIN\x00" => println!("  data: <binary data>"),
             _ => println!("  data: <unknown type>"),
         } 
@@ -91,6 +91,63 @@ impl GLTFContainer {
             count += 1;
         }
     }
+}
+
+fn print_indent(num: i32) {
+    for _i in 0..num {
+       print!("  "); 
+    }
+}
+
+fn print_json(json: String) {
+    print!("  data:");
+    let mut num_indent = 0;
+    let mut prev_char = ' ';
+    let mut in_list = false;
+    for i in json.as_str().chars() {
+        if !in_list && prev_char == ',' && i == '"' {
+            print!("\n");
+            print_indent(num_indent);
+        }
+        if prev_char == '[' && i == '{' {
+            num_indent += 1;
+        }
+        if prev_char == '}' && i == ']' {
+            num_indent -= 1;
+        }
+        if i == '[' {
+            print!("{}", i);
+            in_list = true; 
+        }
+        else if i == ']' {
+            if prev_char == '}' {
+                print!("\n");
+                print_indent(num_indent);
+            }
+            print!("{}", i);
+            in_list = false; 
+        }
+        else if i == '{' {
+            print!("\n");
+            print_indent(num_indent);
+            print!("{{\n");
+            print_indent(num_indent+1);
+            num_indent += 1;
+            in_list = false;
+        }
+        else if i == '}' {
+            num_indent -= 1;
+            print!("\n");
+            print_indent(num_indent);
+            print!("}}");
+            in_list = false;
+        }
+        else {
+            print!("{}", i);
+        }
+        prev_char = i;
+    }
+    print!("\n");
 }
 
 fn main() -> io::Result<()> {
