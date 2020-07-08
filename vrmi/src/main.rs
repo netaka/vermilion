@@ -71,7 +71,7 @@ impl GLTFChank {
         println!("  length: {}", self.chank_length);
         let chank_type = String::from_utf8(self.chank_type.to_vec()).unwrap();
         println!("  type: {}", chank_type);
-        match chank_type.trim() {
+        match chank_type.as_str() {
             "JSON" => print_json(String::from_utf8(self.chank_data.to_vec()).unwrap()),
             "BIN\x00" => println!("  data: <binary data>"),
             _ => println!("  data: <unknown type>"),
