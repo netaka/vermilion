@@ -54,23 +54,29 @@ fn parse_gltf(input: &[u8]) -> Result<GLTFContainer, Err<(&[u8], ErrorKind)>> {
     Ok(gltf)
 }
 
-fn print_header(header: &GLTFHeader) -> () {
-    println!("header:");
-    println!("  magic: {}", String::from_utf8(header.magic.to_vec()).unwrap());
-    println!("  version: {}", header.version);
-    println!("  length: {}", header.length);
+impl GLTFHeader {
+    fn print(&self) {
+        println!("header:");
+        println!("  magic: {}", String::from_utf8(self.magic.to_vec()).unwrap());
+        println!("  version: {}", self.version);
+        println!("  length: {}", self.length);
+    }
 }
 
-fn print_chank(chank: &GLTFChank) -> () {
-    println!("chank{}:", 0);
-    println!("  length: {}", chank.chank_length);
-    println!("  type: {}", String::from_utf8(chank.chank_type.to_vec()).unwrap());
-    println!("  data: {}", String::from_utf8(chank.chank_data.to_vec()).unwrap());
+impl GLTFChank {
+    fn print(&self) {
+        println!("chank{}:", 0);
+        println!("  length: {}", self.chank_length);
+        println!("  type: {}", String::from_utf8(self.chank_type.to_vec()).unwrap());
+        println!("  data: {}", String::from_utf8(self.chank_data.to_vec()).unwrap());
+    }
 }
 
-fn print_gltf(gltf: &GLTFContainer) -> () {
-    print_header(&gltf.header);
-    print_chank(&gltf.chank[0]);
+impl GLTFContainer {
+    fn print(&self) {
+        self.header.print();
+        self.chank[0].print();
+    }
 }
 
 fn main() -> io::Result<()> {
@@ -84,7 +90,7 @@ fn main() -> io::Result<()> {
 
     match parse_gltf(&buffer) {
         Ok(gltf) => {
-            print_gltf(&gltf);
+            gltf.print();
         }
         Err(err) => {
             println!("{:?}", err);
