@@ -6,16 +6,24 @@ use nom::bytes::complete::{tag, take};
 use nom::number::complete::*;
 use nom::{error::ErrorKind, Err};
 
-struct GLTFHeader<'a> {
-    magic: &'a [u8],
+#[derive(Default)]
+struct GLTFHeader {
+    magic: Vec<u8>,
     version: u32,
     length: u32,
 }
 
-struct GLTFChank<'a> {
+#[derive(Default)]
+struct GLTFChank {
     chank_length: u32,
-    chank_type: &'a [u8],
-    chank_data: &'a [u8],
+    chank_type: Vec<u8>,
+    chank_data: Vec<u8>,
+}
+
+#[derive(Default)]
+struct GLTFContainer {
+    header: GLTFHeader,
+    chank: Vec<GLTFChank>,
 }
 
 fn parse_header(input : &[u8]) -> Result<(&[u8], GLTFHeader), Err<(&[u8], ErrorKind)>> {
@@ -23,7 +31,7 @@ fn parse_header(input : &[u8]) -> Result<(&[u8], GLTFHeader), Err<(&[u8], ErrorK
     let (input, version) = le_u32(input)?;
     let (input, length) = le_u32(input)?;
 
-    Ok((input, GLTFHeader{magic, version, length}))
+    Ok((input, GLTFHeader{magic: magic.to_vec(), version, length}))
 }
 
 fn parse_chank(input: &[u8]) -> Result<GLTFChank, Err<(&[u8], ErrorKind)>> {
@@ -31,7 +39,30 @@ fn parse_chank(input: &[u8]) -> Result<GLTFChank, Err<(&[u8], ErrorKind)>> {
     let (input, chank_type) = take(4u8)(input)?;
     let (_input, chank_data) = take(chank_length)(input)?;
 
-    Ok(GLTFChank{chank_length, chank_type, chank_data})
+    Ok(GLTFChank{chank_length, chank_type: chank_type.to_vec(), chank_data: chank_data.to_vec()})
+}
+
+fn parse_gltf(input: &[u8]) -> Result<GLTFContainer, Err<(&[u8], ErrorKind)>> {
+    let mut gltf: GLTFContainer = Default::default();
+
+    match parse_header(&input) {
+        Ok((input, header)) => {
+            gltf.header = header;
+
+            match parse_chank(&input) {
+                Ok(chank) => {
+                    gltf.chank.push(chank);
+                }
+                Err(err) => {
+                    println!("{:?}", err);
+                }
+            }
+        }
+        Err(err) => {
+            println!("{:?}", err);
+        }
+    };
+    Ok(gltf)
 }
 
 fn print_header(header: &GLTFHeader) -> () {
@@ -57,18 +88,10 @@ fn main() -> io::Result<()> {
 
     println!("filename: {}", path);
 
-    match parse_header(&buffer) {
-        Ok((input, header)) => {
-            print_header(&header);
-
-            match parse_chank(&input) {
-                Ok(chank) => {
-                    print_chank(&chank);
-                }
-                Err(err) => {
-                    println!("{:?}", err);
-                }
-            }
+    match parse_gltf(&buffer) {
+        Ok(gltf) => {
+            print_header(&gltf.header);
+            print_chank(&gltf.chank[0]);
         }
         Err(err) => {
             println!("{:?}", err);
