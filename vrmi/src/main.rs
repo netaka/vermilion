@@ -45,23 +45,12 @@ fn parse_chank(input: &[u8]) -> Result<GLTFChank, Err<(&[u8], ErrorKind)>> {
 fn parse_gltf(input: &[u8]) -> Result<GLTFContainer, Err<(&[u8], ErrorKind)>> {
     let mut gltf: GLTFContainer = Default::default();
 
-    match parse_header(&input) {
-        Ok((input, header)) => {
-            gltf.header = header;
+    let (input, header) = parse_header(&input)?;
+    let chank = parse_chank(&input)?;
 
-            match parse_chank(&input) {
-                Ok(chank) => {
-                    gltf.chank.push(chank);
-                }
-                Err(err) => {
-                    println!("{:?}", err);
-                }
-            }
-        }
-        Err(err) => {
-            println!("{:?}", err);
-        }
-    };
+    gltf.header = header;
+    gltf.chank.push(chank);
+    
     Ok(gltf)
 }
 
@@ -79,6 +68,11 @@ fn print_chank(chank: &GLTFChank) -> () {
     println!("  data: {}", String::from_utf8(chank.chank_data.to_vec()).unwrap());
 }
 
+fn print_gltf(gltf: &GLTFContainer) -> () {
+    print_header(&gltf.header);
+    print_chank(&gltf.chank[0]);
+}
+
 fn main() -> io::Result<()> {
     let path = "test.vrm";
     let mut f = File::open(path)?;
@@ -90,8 +84,7 @@ fn main() -> io::Result<()> {
 
     match parse_gltf(&buffer) {
         Ok(gltf) => {
-            print_header(&gltf.header);
-            print_chank(&gltf.chank[0]);
+            print_gltf(&gltf);
         }
         Err(err) => {
             println!("{:?}", err);
