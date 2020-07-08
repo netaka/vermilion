@@ -151,7 +151,11 @@ fn print_json(json: String) {
 }
 
 fn main() -> io::Result<()> {
-    let path = "test.vrm";
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() != 2 {
+        panic!("Usage: vrmi <filename>");
+    }
+    let path = &args[1];
     let mut f = File::open(path)?;
     let mut buffer = Vec::new();
     
