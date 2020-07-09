@@ -93,61 +93,10 @@ impl GLTFContainer {
     }
 }
 
-fn print_indent(num: i32) {
-    for _i in 0..num {
-       print!("  "); 
-    }
-}
-
 fn print_json(json: String) {
-    print!("  data:");
-    let mut num_indent = 0;
-    let mut prev_char = ' ';
-    let mut in_list = false;
-    for i in json.as_str().chars() {
-        if !in_list && prev_char == ',' && i == '"' {
-            print!("\n");
-            print_indent(num_indent);
-        }
-        if prev_char == '[' && i == '{' {
-            num_indent += 1;
-        }
-        if prev_char == '}' && i == ']' {
-            num_indent -= 1;
-        }
-        if i == '[' {
-            print!("{}", i);
-            in_list = true; 
-        }
-        else if i == ']' {
-            if prev_char == '}' {
-                print!("\n");
-                print_indent(num_indent);
-            }
-            print!("{}", i);
-            in_list = false; 
-        }
-        else if i == '{' {
-            print!("\n");
-            print_indent(num_indent);
-            print!("{{\n");
-            print_indent(num_indent+1);
-            num_indent += 1;
-            in_list = false;
-        }
-        else if i == '}' {
-            num_indent -= 1;
-            print!("\n");
-            print_indent(num_indent);
-            print!("}}");
-            in_list = false;
-        }
-        else {
-            print!("{}", i);
-        }
-        prev_char = i;
-    }
-    print!("\n");
+    let v: serde_json::Value = serde_json::from_str(&json).unwrap();
+    let json = serde_json::to_string_pretty(&v).unwrap();
+    println!("{}", json);
 }
 
 fn main() -> io::Result<()> {
